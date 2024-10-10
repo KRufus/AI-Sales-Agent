@@ -1,0 +1,28 @@
+[
+    {
+        "model": "config.twilioconfig",
+        "pk": 1,
+        "fields": {
+            "label": "Main Twilio Config",
+            "twilio_no": "+1234567890",
+            "account_sid": "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "auth_token": "your_auth_token_here",
+            "created_by": 1,
+            "created_on": "2023-10-07T12:15:00Z",
+            "updated_on": "2023-10-07T12:15:00Z"
+        }
+    },
+    {
+        "model": "config.twilioconfig",
+        "pk": 2,
+        "fields": {
+            "label": "Backup Twilio Config",
+            "twilio_no": "+0987654321",
+            "account_sid": "ACXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+            "auth_token": "your_auth_token_here",
+            "created_by": 1,
+            "created_on": "2023-10-07T12:20:00Z",
+            "updated_on": "2023-10-07T12:20:00Z"
+        }
+    }
+]

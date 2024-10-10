@@ -1,0 +1,24 @@
+[
+    {
+        "model": "calls.call",
+        "pk": 1,
+        "fields": {
+            "session_name": "Demo Call Session",
+            "assistant": 1,
+            "created_by": 1,
+            "created_on": "2023-10-07T12:30:00Z",
+            "updated_on": "2023-10-07T12:30:00Z"
+        }
+    },
+    {
+        "model": "calls.call",
+        "pk": 2,
+        "fields": {
+            "session_name": "Support Call Session",
+            "assistant": 2,
+            "created_by": 1,
+            "created_on": "2023-10-07T12:35:00Z",
+            "updated_on": "2023-10-07T12:35:00Z"
+        }
+    }
+]

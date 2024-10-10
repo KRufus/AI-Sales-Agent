@@ -1,0 +1,56 @@
+[
+    {
+        "model": "assistant.assistant",
+        "pk": 1,
+        "fields": {
+            "name": "Sales Assistant",
+            "prompt": "I can help you with any questions about our products. How can I assist you today?",
+            "greeting_message": "Welcome to our store! 😊 How can I help you today?",
+            "max_tokens": 200,
+            "idle_timeout": 600,
+            "max_idle_messages": 3,
+            "idle_message": "Are you still there? Feel free to ask me anything!",
+            "is_publish": true,
+            "created_by": 1,
+            "config": null,
+            "created_on": "2023-10-07T12:00:00Z",
+            "updated_on": "2023-10-07T12:00:00Z"
+        }
+    },
+    {
+        "model": "assistant.assistant",
+        "pk": 2,
+        "fields": {
+            "name": "Support Assistant",
+            "prompt": "I'm here to help you with any support issues. What can I do for you?",
+            "greeting_message": "Hello! 👋 How can I assist you today?",
+            "max_tokens": 150,
+            "idle_timeout": 300,
+            "max_idle_messages": 2,
+            "idle_message": "Do you need further assistance?",
+            "is_publish": true,
+            "created_by": 1,
+            "config": null,
+            "created_on": "2023-10-07T12:05:00Z",
+            "updated_on": "2023-10-07T12:05:00Z"
+        }
+    },
+    {
+        "model": "assistant.assistant",
+        "pk": 3,
+        "fields": {
+            "name": "HR Assistant",
+            "prompt": "I can provide information about company policies and job openings.",
+            "greeting_message": "Hi there! 😊 I'm here to help with any HR-related questions.",
+            "max_tokens": 180,
+            "idle_timeout": 500,
+            "max_idle_messages": 3,
+            "idle_message": "Let me know if you have more questions!",
+            "is_publish": false,
+            "created_by": 1,
+            "config": null,
+            "created_on": "2023-10-07T12:10:00Z",
+            "updated_on": "2023-10-07T12:10:00Z"
+        }
+    }
+]

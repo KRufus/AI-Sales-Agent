@@ -1,0 +1,50 @@
+[
+    {
+        "model": "calls.log",
+        "pk": 1,
+        "fields": {
+            "call": 1,
+            "user": "Client",
+            "message": "Hello, I have a question about your product.",
+            "time": "2023-10-07T12:31:00Z",
+            "created_on": "2023-10-07T12:31:00Z",
+            "updated_on": "2023-10-07T12:31:00Z"
+        }
+    },
+    {
+        "model": "calls.log",
+        "pk": 2,
+        "fields": {
+            "call": 1,
+            "user": "Assistant",
+            "message": "Sure, I'd be happy to help! What would you like to know?",
+            "time": "2023-10-07T12:31:30Z",
+            "created_on": "2023-10-07T12:31:30Z",
+            "updated_on": "2023-10-07T12:31:30Z"
+        }
+    },
+    {
+        "model": "calls.log",
+        "pk": 3,
+        "fields": {
+            "call": 2,
+            "user": "Client",
+            "message": "I'm experiencing issues logging into my account.",
+            "time": "2023-10-07T12:36:00Z",
+            "created_on": "2023-10-07T12:36:00Z",
+            "updated_on": "2023-10-07T12:36:00Z"
+        }
+    },
+    {
+        "model": "calls.log",
+        "pk": 4,
+        "fields": {
+            "call": 2,
+            "user": "Assistant",
+            "message": "I'm sorry to hear that. Let's see how we can resolve this.",
+            "time": "2023-10-07T12:36:30Z",
+            "created_on": "2023-10-07T12:36:30Z",
+            "updated_on": "2023-10-07T12:36:30Z"
+        }
+    }
+]
