@@ -9,6 +9,6 @@ class ClientSerializer(serializers.ModelSerializer):
         model = Client
         fields = [
             'id', 'name', 'phone_number', 'call_status', 'call_status_display', 'is_called', 
-            'created_by', 'created_on', 'updated_on'
+            'created_by',
         ]
         read_only_fields = ['created_by', 'created_on', 'updated_on']
