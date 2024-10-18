@@ -156,4 +156,17 @@ ELEVENLABS_API_KEY = os.getenv('ELEVENLABS_API_KEY')
 # CORS configuration
 CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS').split(',')
 
-CORS_ALLOW_CREDENTIALS = True 
+CORS_ALLOW_CREDENTIALS = True
+
+
+# Celery Configuration
+CELERY_BROKER_URL = 'redis://default:7Z4caozvJyqTc6hr8gAkzh1WTiAUMFJm@redis-14468.c264.ap-south-1-1.ec2.redns.redis-cloud.com:14468/0'  # Redis as message broker
+CELERY_RESULT_BACKEND = 'redis://default:7Z4caozvJyqTc6hr8gAkzh1WTiAUMFJm@redis-14468.c264.ap-south-1-1.ec2.redns.redis-cloud.com:14468/0'  # Redis to store task results
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+
+
+API_BASE_URL = 'http://localhost:8000/api'

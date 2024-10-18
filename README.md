@@ -8,19 +8,23 @@ This document will guide you through the installation and setup process to get t
 
 ## Table of Contents
 
-- [Prerequisites](#prerequisites)
-- [Installation Steps](#installation-steps)
-  - [1. Clone the Repository](#1-clone-the-repository)
-  - [2. Create a Virtual Environment](#2-create-a-virtual-environment)
-  - [3. Activate the Virtual Environment](#3-activate-the-virtual-environment)
-  - [4. Install Dependencies](#4-install-dependencies)
-  - [5. Configure Environment Variables](#5-configure-environment-variables)
-  - [6. Apply Migrations](#6-apply-migrations)
-  - [7. Create a Superuser](#7-create-a-superuser)
-  - [8. Run the Development Server](#8-run-the-development-server)
-- [API Endpoints](#api-endpoints)
-- [Notes](#notes)
-- [License](#license)
+- [sales-backend](#sales-backend)
+  - [Overview](#overview)
+  - [Table of Contents](#table-of-contents)
+  - [Prerequisites](#prerequisites)
+  - [Installation Steps](#installation-steps)
+    - [1. Clone the Repository](#1-clone-the-repository)
+    - [2. Create a Virtual Environment](#2-create-a-virtual-environment)
+      - [Using `venv`](#using-venv)
+    - [3. Activate the Virtual Environment](#3-activate-the-virtual-environment)
+    - [4. Install Dependencies](#4-install-dependencies)
+    - [5. Configure Environment Variables](#5-configure-environment-variables)
+    - [6. Apply Migrations](#6-apply-migrations)
+    - [7. Create a Superuser](#7-create-a-superuser)
+    - [8. Run the Development Server](#8-run-the-development-server)
+  - [API Endpoints](#api-endpoints)
+  - [Notes](#notes)
+  - [License](#license)
 
 ## Prerequisites
 
@@ -152,6 +156,13 @@ Refer to the API documentation or codebase for detailed information on request a
   ```bash
   pip freeze > requirements.txt
   ```
+
+  ```
+  celery -A agent worker --loglevel=info
+
+  celery -A agent worker --loglevel=info --pool=solo
+
+```
 
 - **Database Configuration:** The project is configured to use SQLite by default. To use another database (e.g., PostgreSQL), update the `DATABASES` setting in `settings.py` accordingly.
 - **Static Files:** For serving static files in development, ensure `STATIC_URL` and `STATICFILES_DIRS` are correctly set in `settings.py`.

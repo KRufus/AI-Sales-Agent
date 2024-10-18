@@ -7,6 +7,7 @@ from .models import Client
 from django.db import transaction
 from .serializers import ClientSerializer  # Assume you have a ClientSerializer
 from rest_framework.permissions import IsAuthenticated
+from .tasks import execute_calls_for_user
 
 
 
@@ -84,3 +85,20 @@ class ClientCreateOrBulkCreate(APIView):
 
         except Exception as e:
             return Response({'error': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        
+        
+class ExecuteCalls(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        
+        created_by_id = request.user.id
+        
+        print(created_by_id, "created by")
+
+        
+        execute_calls_for_user.delay(created_by_id)
+
+        
+        return Response({"message": "Call execution started for pending clients."}, status=200)
