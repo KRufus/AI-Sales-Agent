@@ -160,8 +160,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 # Celery Configuration
-CELERY_BROKER_URL = 'redis://default:7Z4caozvJyqTc6hr8gAkzh1WTiAUMFJm@redis-14468.c264.ap-south-1-1.ec2.redns.redis-cloud.com:14468/0'  # Redis as message broker
-CELERY_RESULT_BACKEND = 'redis://default:7Z4caozvJyqTc6hr8gAkzh1WTiAUMFJm@redis-14468.c264.ap-south-1-1.ec2.redns.redis-cloud.com:14468/0'  # Redis to store task results
+CELERY_BROKER_URL = os.getenv('REDIS_URL')  # Redis as message broker
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL')  # Redis to store task results
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
