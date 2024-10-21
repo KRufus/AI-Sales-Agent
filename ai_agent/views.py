@@ -14,6 +14,9 @@ from django.contrib.auth import get_user_model
 import pandas as pd
 import logging
 import os
+import random
+import string
+import time
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -250,3 +253,69 @@ def log_customer_consent_to_excel(customer_name, customer_phone):
     }
     df = pd.concat([df, pd.DataFrame([new_entry])], ignore_index=True)
     df.to_excel(file_path, index=False)
+    
+    
+
+
+@csrf_exempt
+def make_ai_call_in_celery(request):
+    if request.method == 'POST':
+        try:
+            
+            data = JSONParser().parse(request)
+            
+            created_by_id = data.get('created_by')
+
+           
+            user = User.objects.get(id=data.get('created_by'))
+
+            
+            serializer = CallSerializer(data=data)
+            if serializer.is_valid():
+                
+                call_instance = serializer.save(created_by=user)
+
+               
+                client_phone_number = serializer.validated_data.get('customer_phone')
+                client_name = serializer.validated_data.get('customer_name')
+                consent = serializer.validated_data.get('consent')
+                assistant = serializer.validated_data.get('assistant')
+                session_name = serializer.validated_data.get('session_name')
+
+                if not client_phone_number or not client_name:
+                    return JsonResponse({"error": "Missing client_phone_number or client_name."}, status=400)
+
+
+                time.sleep(2 * 60)
+                fake_sid = ''.join(random.choices(string.ascii_uppercase + string.digits, k=34))
+
+                
+                logger.info(f"Fake call initiated for demo: {client_phone_number}, SID: {fake_sid}")
+
+                
+                Call.objects.create(
+                    session_name=session_name,
+                    assistant=assistant,
+                    customer_name=client_name,
+                    customer_phone=client_phone_number,
+                    created_by=user,
+                    consent=consent,
+                )
+                
+                print("call created successfully")
+
+                
+                return JsonResponse({"call_sid": fake_sid}, status=status.HTTP_200_OK)
+
+            else:
+                
+                return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        except User.DoesNotExist:
+            return JsonResponse({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error initiating fake AI call: {e}")
+            return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+

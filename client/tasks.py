@@ -32,15 +32,17 @@ def execute_calls_for_user(created_by_id):
                 continue
 
             api_data = {
-                "created_by": created_by_id,
-                "customer_name": client.name,
-                "customer_phone": str(client.phone_number),
-                "consent": True,
-            }
+            "created_by": created_by_id,
+            "customer_name": client.name,
+            "customer_phone": str(client.phone_number),  # Assuming phone_number is a PhoneNumberField
+            "consent": True,  # Assuming consent is required; adjust as necessary
+            "assistant": 1,
+            "session_name":"Session"
+        }
 
             try:
                 response = requests.post(
-                    url=f"http://localhost:8000/api/ai/make-ai-call/",
+                    url=f"http://localhost:8000/api/ai/make-call-in-celery/",
                     json=api_data,
                     # headers={"Authorization": f"Bearer {settings.API_TOKEN}"},
                 )
