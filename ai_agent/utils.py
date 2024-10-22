@@ -1,7 +1,10 @@
 import os
 import time
 import wave
-import requests
+import boto3
+import random
+import string
+# import requests
 import logging
 from deepgram import Deepgram
 from datetime import datetime
@@ -10,6 +13,7 @@ from django.core.files.storage import default_storage
 from django.core.files.base import ContentFile
 from django.conf import settings
 import aiohttp
+import asyncio
 
 logger = logging.getLogger(__name__)
 
@@ -91,28 +95,61 @@ dg_client = DeepgramClient(api_key=os.getenv("DEEPGRAM_API_KEY"))
 #         raise Exception(f"Deepgram API request failed: {e}")
 
 
+def generate_unique_filename(extension="wav"):
+    random_string = ''.join(random.choices(string.ascii_lowercase + string.digits, k=10))
+    return f"audio_{random_string}.{extension}"
+
+def upload_to_s3(file_path, file_name):
+    s3 = boto3.client(
+        's3',
+        aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+        aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY
+    )
+
+    bucket_name = settings.AWS_STORAGE_BUCKET_NAME
+    
+    region = settings.AWS_REGION
+    
+    s3.upload_file(file_path, bucket_name, file_name)
+
+    file_url = f"https://{bucket_name}.s3.{region}.amazonaws.com/models/{file_name}"
+    return file_url
 
 
 
 async def generate_voice(text):
     print("\n\n ______ generate_voice function was triggered")
     try:
-        # Create a websocket connection to Deepgram
+        
+        unique_audio_file_name = generate_unique_filename()
+        audio_file_path = os.path.join(settings.MEDIA_ROOT, unique_audio_file_name)
+        
         dg_connection = dg_client.speak.websocket.v("1")
+        
+        file_complete = asyncio.Event()
 
         # Callback functions for WebSocket events
         def on_open(self, open, **kwargs):
             print(f"WebSocket opened:_____ {open}")
 
+        # def on_binary_data(self, data, **kwargs):
+        #     print("Received binary data _____")
+        #     # Save streamed binary audio to the WAV file
+        #     with default_storage.open(audio_file_path, "ab") as f:
+        #         f.write(data)
+        #         f.flush()
+                
         def on_binary_data(self, data, **kwargs):
             print("Received binary data _____")
-            # Save streamed binary audio to the WAV file
-            with default_storage.open(AUDIO_FILE, "ab") as f:
+            with default_storage.open(audio_file_path, "ab") as f:
                 f.write(data)
-                f.flush()
 
+        # def on_close(self, close, **kwargs):
+        #     print(f"WebSocket closed:_____ {close}")
+            
         def on_close(self, close, **kwargs):
             print(f"WebSocket closed:_____ {close}")
+            file_complete.set()
 
         # Set the event handlers
         dg_connection.on(SpeakWebSocketEvents.Open, on_open)
@@ -120,7 +157,13 @@ async def generate_voice(text):
         dg_connection.on(SpeakWebSocketEvents.Close, on_close)
 
         # Generate a generic WAV header for the audio file
-        header = wave.open(AUDIO_FILE, "wb")
+        # header = wave.open(AUDIO_FILE, "wb")
+        # header.setnchannels(1)  # Mono audio
+        # header.setsampwidth(2)  # 16-bit audio
+        # header.setframerate(16000)  # 16000 Hz sample rate
+        # header.close()
+        
+        header = wave.open(audio_file_path, "wb")
         header.setnchannels(1)  # Mono audio
         header.setsampwidth(2)  # 16-bit audio
         header.setframerate(16000)  # 16000 Hz sample rate
@@ -130,24 +173,72 @@ async def generate_voice(text):
         options = SpeakWSOptions(
             model="aura-asteria-en",
             encoding="linear16",
-            sample_rate=48000
+            sample_rate=16000
         )
 
-        if dg_connection.start(options) is False:
+        # if dg_connection.start(options) is False:
+        #     print("Failed to start connection")
+        #     return
+        
+        if  dg_connection.start(options) is False:
             print("Failed to start connection")
             return
 
-        # Send the text to Deepgram for TTS conversion
+        
+        # dg_connection.send_text(text)
+        # dg_connection.flush()
+        
         dg_connection.send_text(text)
         dg_connection.flush()
 
         # Allow time for processing and streaming the audio data
-        time.sleep(5)
+        # time.sleep(10)
+        
+        file_complete.wait()
 
-        dg_connection.finish()
-        logger.info(f"Audio file saved to: {AUDIO_FILE}")
-        return settings.MEDIA_URL + AUDIO_FILE
+        # dg_connection.finish()
+        # logger.info(f"Audio file saved to: {AUDIO_FILE}")
+        
+        # await dg_connection.finish()
+        # logger.info(f"Audio file saved to: {audio_file_path}")
+        
+        try:
+            dg_connection.finish()
+        except Exception as e:
+            print(f"Failed to close connection: {e}")
+            raise
+        
+        logger.info(f"Audio file saved to: {audio_file_path}")
+        
+        # s3_file_url = upload_to_s3(audio_file_path, unique_audio_file_name)
+        
+        try:
+            s3_file_url = upload_to_s3(audio_file_path, unique_audio_file_name)
+        except Exception as e:
+            logger.error(f"Failed to upload audio file to S3: {e}")
+            raise
+        
+        
+        logger.info(f"Audio file uploaded to S3: {s3_file_url}")
+        
+        return s3_file_url
+
+        # return settings.MEDIA_URL + AUDIO_FILE
 
     except Exception as e:
         logger.error(f"Deepgram API request failed: {e}")
         raise Exception(f"Deepgram API request failed: {e}")
+    
+    
+    
+# async def test_generate_voice():
+#     text = (
+#         "Hello, this is Ginie from Army of Me. I hope you're doing well today! "
+#         "We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. "
+#         "Is there a particular service you are interested in, or would you like an overview of our offerings?"
+#     )
+#     result = await generate_voice(text)
+#     print(result)
+
+# # Run the test function
+# asyncio.run(test_generate_voice())

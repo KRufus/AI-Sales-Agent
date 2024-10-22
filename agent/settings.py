@@ -30,7 +30,17 @@ ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
 CSRF_TRUSTED_ORIGINS = os.getenv('CSRF_TRUSTED_ORIGINS', '').split(',')
 
+AWS_ACCESS_KEY_ID = os.getenv('AWS_ACCESS_KEY_ID', '')
+
+AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
+
+AWS_STORAGE_BUCKET_NAME = os.getenv('BUCKET_NAME', '')
+
+AWS_REGION = os.getenv('AWS_REGION', '')
+
+
 AUTH_USER_MODEL = 'user_auth.CustomUser'
+
 
 # Application definition
 
@@ -170,3 +180,7 @@ CELERY_TIMEZONE = 'UTC'
 
 
 API_BASE_URL = 'http://localhost:8000/api'
+
+MEDIA_URL = '/media/' 
+MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  
+

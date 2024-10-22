@@ -15,6 +15,9 @@ from django.contrib.auth import get_user_model
 import pandas as pd
 import logging
 import os
+from .utils import dg_client
+import asyncio
+from django.conf import settings
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -111,13 +114,13 @@ def make_ai_call(request):
                 if not client_phone_number or not client_name:
                     return JsonResponse({"error": "Missing client_phone_number or client_name."}, status=400)
 
-                url=f"http://{request.get_host()}/api/ai/greet-client/"
+                url=f"https://e613-103-88-236-42.ngrok-free.app/api/ai/greet-client/"
                 print("url _____ ", url)
                 # Initiate the Twilio call
                 call = twilio_client.calls.create(
                     from_=from_phone_number,
                     to=client_phone_number,
-                    url=f"http://{request.get_host()}/api/ai/greet-client/",
+                    url=f"https://e613-103-88-236-42.ngrok-free.app/api/ai/greet-client/",
                     record=True,
                 )
 
@@ -152,6 +155,17 @@ def make_ai_call(request):
     return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
+# async def test_generate_voice():
+#     text = (
+#         "Hello, this is Ginie from Army of Me. I hope you're doing well today! "
+#         "We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. "
+#         "Is there a particular service you are interested in, or would you like an overview of our offerings?"
+#     )
+#     return await generate_voice(text)
+
+
+# # Run the test function
+# asyncio.run(test_generate_voice())
 
 
 @csrf_exempt
@@ -185,7 +199,12 @@ async def greet_client(request):
 
     try:
         # Await the asynchronous generate_voice function
+        # audio_url = asyncio.run(test_generate_voice())
         audio_url = await generate_voice(greeting_text)
+        
+        # audio_url = request.build_absolute_uri(settings.MEDIA_URL + 'output.wav')
+        # audio_url = "https://ae8c-103-88-236-42.ngrok-free.app/media/output.wav"
+        
         print("\n\n audio_url _____ ", audio_url)
 
     except Exception as e:
