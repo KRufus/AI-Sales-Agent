@@ -1,12 +1,13 @@
 from django.http import JsonResponse
 from rest_framework.views import APIView
 from rest_framework.parsers import JSONParser
-from .serializers import RegisterSerializer
+from .serializers import RegisterSerializer,UserSerializer
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
 from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework.permissions import IsAuthenticated
 
 User = get_user_model()
 
@@ -23,6 +24,17 @@ class RegisterView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class UserDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user  # The authenticated user
+        serializer = UserSerializer(user)
+        return JsonResponse(serializer.data, status=status.HTTP_200_OK)
+    
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]

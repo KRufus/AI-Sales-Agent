@@ -12,6 +12,7 @@ class CallList(APIView):
 
     def get(self, request):
         calls = Call.objects.filter(created_by=request.user)
+        print(calls)
         serializer = CallSerializer(calls, many=True)
         return JsonResponse(serializer.data, safe=False)
 
