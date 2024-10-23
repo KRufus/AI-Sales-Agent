@@ -5,7 +5,7 @@ User = get_user_model()
 
 class TwilioConfig(models.Model):
     label = models.CharField(max_length=100)
-    twilio_no = models.CharField(max_length=20)
+    twilio_no = models.CharField(max_length=20, unique=True) 
     account_sid = models.CharField(max_length=255)
     auth_token = models.CharField(max_length=255)
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='twilio_configs', null=True, blank=True)

@@ -25,6 +25,7 @@ class RegisterView(APIView):
             )
         return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class UserDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
@@ -32,6 +33,8 @@ class UserDetailView(APIView):
         user = request.user  # The authenticated user
         serializer = UserSerializer(user)
         return JsonResponse(serializer.data, status=status.HTTP_200_OK)
+    
+
 
 class LoginView(APIView):
     permission_classes = [AllowAny]

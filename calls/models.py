@@ -12,6 +12,8 @@ class Call(models.Model):
     customer_phone = models.CharField(max_length=20, null=True, blank=True)
     consent = models.BooleanField(default=False, null=True, blank=True)
 
+    call_sid = models.CharField(max_length=255, null=True, unique=True)
+
     created_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='calls', null=True, blank=True)
     created_on = models.DateTimeField(auto_now_add=True)
     updated_on = models.DateTimeField(auto_now=True)
