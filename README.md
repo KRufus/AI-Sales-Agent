@@ -24,6 +24,8 @@ This document will guide you through the installation and setup process to get t
     - [8. Run the Development Server](#8-run-the-development-server)
   - [API Endpoints](#api-endpoints)
   - [Notes](#notes)
+  - [Run the MinIO on docker](#run-the-minio-on-docker)
+  - [NGROK](#ngrok)
   - [License](#license)
 
 ## Prerequisites
@@ -164,8 +166,21 @@ Refer to the API documentation or codebase for detailed information on request a
 
 ```
 
+## Run the MinIO on docker
+```
+docker run -p 9000:9000 -p 9001:9001 --name minio1 -v "D:\minio\data:/data" -e "MINIO_ROOT_USER=ROOTUSER" -e "MINIO_ROOT_PASSWORD=CHANGEME123" quay.io/minio/minio server /data --console-address ":9001"
+```
+
+
 - **Database Configuration:** The project is configured to use SQLite by default. To use another database (e.g., PostgreSQL), update the `DATABASES` setting in `settings.py` accordingly.
-- **Static Files:** For serving static files in development, ensure `STATIC_URL` and `STATICFILES_DIRS` are correctly set in `settings.py`.
+- **Static Files:** For serving static files in development, ensure `STATIC_URL` and `STATICFILES_DIRS` are correctly set in `settings.py`
+
+## NGROK 
+```
+python manage.py start_ngrok
+
+python manage.py start_ngrok --stop
+```
 
 ## License
 

@@ -20,6 +20,8 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+EXTERNAL_NGROK_URL = 'https://fa5c-74-48-73-37.ngrok-free.app/'
+
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'your-default-secret-key')
 
@@ -37,6 +39,8 @@ AWS_SECRET_ACCESS_KEY = os.getenv('AWS_SECRET_ACCESS_KEY', '')
 AWS_STORAGE_BUCKET_NAME = os.getenv('BUCKET_NAME', '')
 
 AWS_REGION = os.getenv('AWS_REGION', '')
+
+DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
 
 AUTH_USER_MODEL = 'user_auth.CustomUser'
@@ -58,6 +62,7 @@ INSTALLED_APPS = [
     'calls',
     'user_auth',
     'client',
+    'ai_agent',
 ]
 
 MIDDLEWARE = [

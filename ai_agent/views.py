@@ -4,12 +4,14 @@ import string
 import time
 
 from django.http import JsonResponse
+
 from rest_framework.parsers import JSONParser
 from rest_framework import status
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.http import HttpResponse
 from asgiref.sync import sync_to_async
-from .utils import generate_voice
+from .utils.utils import convert_text_to_speech, generate_voice
 from twilio.rest import Client
 from datetime import datetime
 from calls.models import Call
@@ -18,73 +20,24 @@ from django.contrib.auth import get_user_model
 import pandas as pd
 import logging
 import os
-from .utils import dg_client
+from .utils.utils import dg_client
 import asyncio
 from django.conf import settings
+from twilio.twiml.voice_response import VoiceResponse, Say, Play, Gather
+from deepgram import DeepgramClient, PrerecordedOptions
+import requests
+from requests.auth import HTTPBasicAuth
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
 
+TWILIO_ACCOUNT_SID=os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN=os.getenv("TWILIO_AUTH_TOKEN")
+
 twilio_client = Client(os.getenv("TWILIO_ACCOUNT_SID"), os.getenv("TWILIO_AUTH_TOKEN"))
 from_phone_number = os.getenv("TWILIO_PHONE_NUMBER")
-
-# @csrf_exempt
-# def make_ai_call(request):
-#     logger.info('______ make_ai_call URL was triggered')
-#     return JsonResponse({"status": "success", "message": "AI call initiated"}, status=200)
-
-#     if request.method != 'POST':
-#         return JsonResponse({"error": "Invalid request method."}, status=405)
-    
-#     client_phone_number = request.POST.get('client_phone_number')
-#     client_name = request.POST.get('client_name')
-
-#     if not client_phone_number or not client_name:
-#         return JsonResponse({"error": "Missing client_phone_number or client_name."}, status=400)
-
-#     try:
-#         call = twilio_client.calls.create(
-#             from_=from_phone_number,
-#             to=client_phone_number,
-#             url=f"http://{request.get_host()}/greet-client"
-#         )
-#         logger.info(f"Call initiated: {client_phone_number}, SID: {call.sid}")
-        
-#         # Log the call in CallLog model
-#         CallLog.objects.create(
-#             customer_name=client_name,
-#             customer_phone=client_phone_number,
-#             call_sid=call.sid,
-#             consent_given=False  # Initially set to False
-#         )
-        
-#         return JsonResponse({"call_sid": call.sid}, status=200)
-#     except Exception as e:
-#         logger.error(f"Error initiating call: {e}")
-#         return JsonResponse({"error": str(e)}, status=500)
-
-# @csrf_exempt
-# # @api_view(['POST'])
-# def make_ai_call(request):
-#     if request.method == 'POST':
-#         # Parse the incoming request data
-#         data = JSONParser().parse(request)
-
-#         user = User.objects.get(id=data.get('created_by'))
-#         # Use the serializer to validate and create the Call instance
-#         serializer = CallSerializer(data=data)
-
-#         if serializer.is_valid():
-#             # Save the new Call instance using the serializer
-#             serializer.save(created_by=user)
-
-#             # Return the created Call data
-#             return JsonResponse(serializer.data, status=status.HTTP_201_CREATED)
-#         else:
-#             # Return validation errors if the serializer is not valid
-#             return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-#     return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+DEEPGRAM_API_TOKEN = api_key=os.getenv("DEEPGRAM_API_KEY")
+dg_client = DeepgramClient(api_key=os.getenv("DEEPGRAM_API_KEY"))
 
 
 
@@ -92,24 +45,17 @@ from_phone_number = os.getenv("TWILIO_PHONE_NUMBER")
 def make_ai_call(request):
     print("\n\n ______ make_ai_call URL was triggered")
     print("request.get_host() _____ ", request.get_host())
-    # print("request.host _____ ", request.host)
+
     if request.method == 'POST':
         try:
-            # Parse incoming request data
             data = JSONParser().parse(request)
-            print("data _____ ", data)
 
-            # Fetch the user based on the created_by field in the data
             user = User.objects.get(id=data.get('created_by'))
-            print("user _____ ", user)
 
-            # Use serializer to validate and create Call instance
             serializer = CallSerializer(data=data)
             if serializer.is_valid():
-                # Save the new Call instance
                 call_instance = serializer.save(created_by=user)
 
-                # Extract phone number and other details from the validated data
                 client_phone_number = serializer.validated_data.get('customer_phone')
                 client_name = serializer.validated_data.get('customer_name')
                 consent = serializer.validated_data.get('consent')
@@ -117,22 +63,38 @@ def make_ai_call(request):
                 if not client_phone_number or not client_name:
                     return JsonResponse({"error": "Missing client_phone_number or client_name."}, status=400)
 
-                url=f"https://e613-103-88-236-42.ngrok-free.app/api/ai/greet-client/"
-                print("url _____ ", url)
-                # Initiate the Twilio call
+                public_url = asyncio.run(convert_text_to_speech())
+                
+                if not public_url:
+                    return JsonResponse({"error": "Failed to generate TTS or upload to MinIO"}, status=500)
+                
+                
+                
+                response = VoiceResponse()
+                
+                gather = Gather(
+                input="speech dtmf",
+                action=f"https://v9tffpqaeb.loclx.io/api/ai/process_gather/",
+                method="POST",
+                timeout=5,
+                speechTimeout="auto",
+                speechModel="deepgram_nova-2",  # Using Deepgram's nova-2 model
+                language="en-US"
+            )
+                gather.play(public_url)
+                print(response, "response")
+                response.append(gather)
+    
+    
                 call = twilio_client.calls.create(
-                    from_=from_phone_number,
+                    twiml=response,
                     to=client_phone_number,
-                    url=f"https://e613-103-88-236-42.ngrok-free.app/api/ai/greet-client/",
-                    record=True,
+                    from_=from_phone_number
                 )
-
+                
                 print("call _____ ", call)
-
-                # Log the call SID and status
                 logger.info(f"Call initiated: {client_phone_number}, SID: {call.sid}")
 
-                # # Update the CallLog or any related model with the call SID
                 Call.objects.create(
                     customer_name=client_name,
                     customer_phone=client_phone_number,
@@ -142,11 +104,9 @@ def make_ai_call(request):
                     # consent_given=consent  # Initially set to False
                 )
 
-                # Return the response with the call SID
                 return JsonResponse({"call_sid": call.sid}, status=status.HTTP_200_OK)
 
             else:
-                # Return validation errors if the serializer is not valid
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         except User.DoesNotExist:
@@ -158,17 +118,38 @@ def make_ai_call(request):
     return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
 
 
-# async def test_generate_voice():
-#     text = (
-#         "Hello, this is Ginie from Army of Me. I hope you're doing well today! "
-#         "We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. "
-#         "Is there a particular service you are interested in, or would you like an overview of our offerings?"
-#     )
-#     return await generate_voice(text)
+@csrf_exempt
+def process_gather(request):
+    if request.method == 'POST':
+        
+        print("result", "speech_result")
+        # Retrieve gathered input
+        speech_result = request.POST.get('SpeechResult')
+        digits = request.POST.get('Digits')
+        
+        print(speech_result, "speech_result")
 
+        # Respond based on speech or DTMF input
+        response = VoiceResponse()
+        if speech_result:
+            if "sales" in speech_result.lower():
+                response.say("Thank you for your interest in sales. Connecting you to a representative.")
+            elif "support" in speech_result.lower():
+                response.say("Connecting you to support.")
+            else:
+                response.say("I'm sorry, I didn't quite understand that. Could you repeat?")
+        elif digits:
+            if digits == "1":
+                response.say("Thank you for choosing sales. A representative will be with you shortly.")
+            elif digits == "2":
+                response.say("Connecting you to support.")
+            else:
+                response.say("Invalid input. Please try again.")
 
-# # Run the test function
-# asyncio.run(test_generate_voice())
+        return HttpResponse(str(response), content_type="application/xml")
+
+    return JsonResponse({"error": "Invalid request method."}, status=405)
+
 
 
 @csrf_exempt
@@ -421,4 +402,7 @@ def make_ai_call_in_celery(request):
             return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+
 
