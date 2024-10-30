@@ -20,7 +20,7 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-EXTERNAL_NGROK_URL = 'https://fa5c-74-48-73-37.ngrok-free.app/'
+EXTERNAL_NGROK_URL = 'https://f0dd-103-88-236-42.ngrok-free.app/'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'your-default-secret-key')

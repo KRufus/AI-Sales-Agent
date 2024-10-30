@@ -11,7 +11,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from asgiref.sync import sync_to_async
-from .utils.utils import convert_text_to_speech, generate_voice
+from .utils.utils import convert_text_to_speech, generate_voice, handle_conversation_loop
 from twilio.rest import Client
 from datetime import datetime
 from calls.models import Call
@@ -27,6 +27,8 @@ from twilio.twiml.voice_response import VoiceResponse, Say, Play, Gather
 from deepgram import DeepgramClient, PrerecordedOptions
 import requests
 from requests.auth import HTTPBasicAuth
+import aiohttp
+import xml.etree.ElementTree as ET
 
 User = get_user_model()
 logger = logging.getLogger(__name__)
@@ -72,18 +74,29 @@ def make_ai_call(request):
                 
                 response = VoiceResponse()
                 
-                gather = Gather(
-                input="speech dtmf",
-                action=f"https://v9tffpqaeb.loclx.io/api/ai/process_gather/",
-                method="POST",
-                timeout=5,
-                speechTimeout="auto",
-                speechModel="deepgram_nova-2",  # Using Deepgram's nova-2 model
-                language="en-US"
-            )
-                gather.play(public_url)
+            #     gather = Gather(
+            #     input="speech dtmf",
+            #     action=f"https://fabc4069bf010e385fc756a6b15190b9.serveo.net/api/ai/process-gather/",
+            #     method="POST",
+            #     timeout=5,
+            #     speechTimeout="auto",
+            #     speechModel="deepgram_nova-2",
+            #     language="en-US"
+            # )
+                response.play(public_url)
                 print(response, "response")
-                response.append(gather)
+                # response.append(gather)
+                
+                response.record(
+                    action=f"https://fabc4069bf010e385fc756a6b15190b9.serveo.net/api/ai/process-gather/",
+                    method="POST",
+                    timeout=5,
+                    transcribe=False,
+                    play_beep=False,
+                    recording_channels="single",
+                    recording_status_callback_method="POST",
+                    recording_format="mp3"
+                )
     
     
                 call = twilio_client.calls.create(
@@ -121,35 +134,64 @@ def make_ai_call(request):
 @csrf_exempt
 def process_gather(request):
     if request.method == 'POST':
-        
-        print("result", "speech_result")
         # Retrieve gathered input
-        speech_result = request.POST.get('SpeechResult')
-        digits = request.POST.get('Digits')
+        recording_url = request.POST.get('RecordingUrl')
+        print(recording_url, "recording_url")
         
-        print(speech_result, "speech_result")
+        call_sid = request.POST.get('CallSid')  # If sent by Twilio
 
-        # Respond based on speech or DTMF input
-        response = VoiceResponse()
-        if speech_result:
-            if "sales" in speech_result.lower():
-                response.say("Thank you for your interest in sales. Connecting you to a representative.")
-            elif "support" in speech_result.lower():
-                response.say("Connecting you to support.")
-            else:
-                response.say("I'm sorry, I didn't quite understand that. Could you repeat?")
-        elif digits:
-            if digits == "1":
-                response.say("Thank you for choosing sales. A representative will be with you shortly.")
-            elif digits == "2":
-                response.say("Connecting you to support.")
-            else:
-                response.say("Invalid input. Please try again.")
+        if not call_sid:
+            return JsonResponse({"error": "Call SID is missing"}, status=400)
+        
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            audio_url, mimetype = loop.run_until_complete(parse_twilio_response(recording_url))
+        except ValueError as e:
+            return JsonResponse({"error": str(e)}, status=400)
+        finally:
+            loop.close()
 
-        return HttpResponse(str(response), content_type="application/xml")
+        print("Actual audio URL:", audio_url)
+        print("Audio mimetype:", mimetype)
+        
+        # Verify if the mimetype is acceptable
+        if mimetype not in ['audio/x-wav', 'audio/mpeg']:
+            return JsonResponse({"error": "Unsupported audio format"}, status=400)
+        
+        
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        loop.run_until_complete(handle_conversation_loop(recording_url, call_sid))
+        loop.close()
+
+        return HttpResponse(status=200)
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
 
+
+
+
+async def parse_twilio_response(recording_url):
+    async with aiohttp.ClientSession() as session:
+        async with session.get(recording_url) as response:
+            xml_content = await response.text()
+        
+        root = ET.fromstring(xml_content)
+        recording_url_element = root.find('.//RecordingUrl')
+        
+        if recording_url_element is None:
+            print("XML content:", xml_content)  # Log the XML content for debugging
+            raise ValueError("RecordingUrl not found in Twilio response")
+        
+        audio_url = recording_url_element.text
+        
+        # Now check the mimetype of the actual audio URL
+        async with session.head(audio_url) as audio_response:
+            mimetype = audio_response.headers.get('Content-Type')
+        
+        return audio_url, mimetype
 
 
 @csrf_exempt
