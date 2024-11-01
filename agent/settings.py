@@ -42,6 +42,18 @@ AWS_REGION = os.getenv('AWS_REGION', '')
 
 DEEPGRAM_API_KEY = os.getenv("DEEPGRAM_API_KEY")
 
+#  Minio configuration
+MINIO_ENDPOINT = os.getenv("MINIO_ENDPOINT")
+MINIO_ACCESS_KEY = os.getenv("MINIO_ACCESS_KEY")
+MINIO_SECRETE_KEY = os.getenv("MINIO_SECRETE_KEY")
+MINIO_USE_HTTPS = os.getenv("MINIO_USE_HTTPS")
+MINIO_BUCKET_NAME = os.getenv("MINIO_BUCKET_NAME")
+MINIO_BASE_PATH = os.getenv("MINIO_BASE_PATH")
+
+# Twilio configuration
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
+TWILIO_PHONE_NUMBER = os.getenv("TWILIO_PHONE_NUMBER")
+
 
 AUTH_USER_MODEL = 'user_auth.CustomUser'
 
