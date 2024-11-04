@@ -22,6 +22,7 @@ from django.conf import settings
 from twilio.twiml.voice_response import VoiceResponse, Gather
 from deepgram import DeepgramClient
 from .utils.utils import twilio_client, from_phone_number
+from asgiref.sync import async_to_sync
 
 
 User = get_user_model()
@@ -70,10 +71,10 @@ def make_ai_call(request):
                 
                 gather = Gather(
                 input="speech dtmf",
-                action=f"https://83b8-103-88-236-42.ngrok-free.app/api/ai/process-gather/",
+                action=f"https://dbb4-103-88-236-42.ngrok-free.app/api/ai/process-gather/",
                 method="POST",
                 timeout=5,
-                speechTimeout="10",
+                speechTimeout="2",
                 speechModel="deepgram_nova-2",
                 language="en-US"
             )
@@ -118,38 +119,44 @@ def make_ai_call(request):
 @csrf_exempt
 def process_gather(request):
     if request.method == 'POST':
-        
-        
         call_sid = request.POST.get('CallSid')
-        
+        print(call_sid, "call_sid_inside the process_gather")
+
         if not call_sid:
             return JsonResponse({"error": "Call SID is missing"}, status=400)
-        
-        
-        speechResult = request.POST.get('SpeechResult')
-        
-        print(speechResult, "speechResult")
-        
-        ai_response = asyncio.run(response_for_gpt(speechResult));
-        
-        print(ai_response, "ai_response")
-        
-        SPEAK_TEXT = {"text":f"{ai_response}"}
-        
-        public_url = asyncio.run(convert_text_to_speech(SPEAK_TEXT, prefix="ai"))
-        
-        said =  play_audio_to_user(public_url, call_sid)
-        
-        print(said, "said")
 
-        
+        speech_result = request.POST.get('SpeechResult')
+        print(speech_result, "speechResult")
 
-        return HttpResponse(status=200)
+        try:
+            ai_response = async_to_sync(response_for_gpt)(speech_result)
+            print(ai_response, "ai_response")
+
+            SPEAK_TEXT = {"text": ai_response}
+            public_url = async_to_sync(convert_text_to_speech)(SPEAK_TEXT, prefix="ai")
+
+            response = VoiceResponse()
+            gather = Gather(
+                input="speech dtmf",
+                action=f"https://dbb4-103-88-236-42.ngrok-free.app/api/ai/process-gather/",
+                method="POST",
+                timeout=5,
+                speechTimeout="2",
+                speechModel="deepgram_nova-2",
+                language="en-US"
+            )
+            gather.play(public_url)
+            response.append(gather)
+
+            return HttpResponse(str(response), content_type='application/xml')
+        except Exception as e:
+            print(f"Error in process_gather: {e}")
+            return HttpResponse(status=500)
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
 
 
-async def play_audio_to_user(url, call_sid):
+def play_audio_to_user(url, call_sid):
     if not call_sid:
         print("No call SID found.")
         return
@@ -166,7 +173,7 @@ async def play_audio_to_user(url, call_sid):
     response = VoiceResponse()
     gather = Gather(
         input="speech dtmf",
-        action=f"https://your-ngrok-url.ngrok-free.app/api/ai/process-gather/",
+        action=f"https://dbb4-103-88-236-42.ngrok-free.app/api/ai/process-gather/",
         method="POST",
         timeout=5,
         speechTimeout="10",

@@ -43,10 +43,9 @@ async def convert_text_to_speech(speak_text, prefix="ai"):
         filename = f"{prefix}_{uuid.uuid4().hex}.mp3"
         minio_path = f"{minio_base_path}{filename}"
         
-        print(filename, minio_path, "filename, minio_path")
+        # print(filename, minio_path, "filename, minio_path")
         
         options = SpeakOptions(model="aura-asteria-en")
-        print(minio_client, "minio_client")
 
         try:
             response = await dg_client.speak.asyncrest.v("1").save(filename, speak_text, options)
@@ -73,7 +72,7 @@ async def convert_text_to_speech(speak_text, prefix="ai"):
         if not mime_type:
             mime_type = "application/octet-stream"
 
-        print(minio_client, "minio_client")
+        # print(minio_client, "minio_client")
 
         try:
             minio_client.fput_object(
@@ -107,13 +106,19 @@ async def convert_text_to_speech(speak_text, prefix="ai"):
         return None
 
 
-
 async def response_for_gpt(speechResult):
     ai_response = openai.ChatCompletion.create(
-           model="gpt-4",
-          messages=[
-              {"role": "system", "content": "You are a helpful assistant."},
-              {"role": "user", "content": speechResult}
-          ]
-          ).choices[0].message['content'].strip()
+        model="gpt-4",
+        messages=[
+            {
+                "role": "system",
+                "content": (
+                    "You are a helpful assistant. "
+                    "Please provide concise and brief answers, no longer than 500 words. "
+                    "Avoid unnecessary details."
+                )
+            },
+            {"role": "user", "content": speechResult}
+        ]
+    ).choices[0].message['content'].strip()
     return ai_response
