@@ -12,3 +12,12 @@ minio_client = Minio(
     secret_key=settings.MINIO_SECRETE_KEY,
     secure=settings.MINIO_USE_HTTPS,
 )
+
+
+# public_url_storage = {}
+
+# def store_public_url(call_sid, public_url):
+#     public_url_storage[call_sid] = public_url
+
+# def retrieve_public_url(call_sid):
+#     return public_url_storage.get(call_sid)

@@ -6,6 +6,6 @@ urlpatterns = [
     # path('greet-client/', views.greet_client, name='greet_client'),
     # path('gather-input/', views.gather_input, name='gather_input'),
     path('process-gather/', views.process_gather, name='process_gather'),
-    # path('process-recording/', views.process_recording, name='process_input'),
+    path('play-ai-response/', views.play_ai_response, name='play_ai_response'),
     path('make-call-in-celery/', views.make_ai_call_in_celery, name='make_ai_call_in_celery'),
 ]

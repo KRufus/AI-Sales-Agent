@@ -107,13 +107,15 @@ async def convert_text_to_speech(speak_text, prefix="ai"):
 
 
 async def response_for_gpt(speechResult):
+    max_chars = 500
     ai_response = openai.ChatCompletion.create(
-        model="gpt-4",
+        model="gpt-3.5-turbo",
+        max_tokens=150,
         messages=[
             {
                 "role": "system",
                 "content": (
-                    "You are a helpful assistant. "
+                    "You are a helpful assistant."
                     "Please provide concise and brief answers, no longer than 500 words. "
                     "Avoid unnecessary details."
                 )
@@ -121,4 +123,9 @@ async def response_for_gpt(speechResult):
             {"role": "user", "content": speechResult}
         ]
     ).choices[0].message['content'].strip()
+    
+    if len(ai_response) > max_chars:
+        ai_response = ai_response[:max_chars]
+    
     return ai_response
+    # return ai_response

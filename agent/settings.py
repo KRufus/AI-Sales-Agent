@@ -20,7 +20,7 @@ load_dotenv()
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-EXTERNAL_NGROK_URL = 'https://f0dd-103-88-236-42.ngrok-free.app/'
+EXTERNAL_NGROK_URL = 'https://9e4d-103-88-236-42.ngrok-free.app/'
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = os.getenv('SECRET_KEY', 'your-default-secret-key')
@@ -173,6 +173,19 @@ SIMPLE_JWT = {
     'ACCESS_TOKEN_LIFETIME': timedelta(hours=int(os.getenv('ACCESS_TOKEN_LIFETIME', '1')))
 }
 
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': os.getenv('REDIS_URL_FOR_CHACHE'),
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'IGNORE_EXCEPTIONS': True,
+        }
+    }
+}
+
+CACHE_ALIAS = 'default'
+
 # Twilio Configuration
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
@@ -187,8 +200,8 @@ CORS_ALLOW_CREDENTIALS = True
 
 
 # Celery Configuration
-CELERY_BROKER_URL = os.getenv('REDIS_URL')  
-CELERY_RESULT_BACKEND = os.getenv('REDIS_URL') 
+CELERY_BROKER_URL = os.getenv('REDIS_URL_FOR_CELERY')  
+CELERY_RESULT_BACKEND = os.getenv('REDIS_URL_FOR_CELERY') 
 CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
