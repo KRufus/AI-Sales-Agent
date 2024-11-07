@@ -37,7 +37,6 @@ dg_client = DeepgramClient(api_key=settings.DEEPGRAM_API_KEY)
 
 
 async def convert_text_to_speech(speak_text, prefix="ai"):
-    print(speak_text, "minio_client")
     try:
        
         filename = f"{prefix}_{uuid.uuid4().hex}.mp3"
@@ -107,25 +106,45 @@ async def convert_text_to_speech(speak_text, prefix="ai"):
 
 
 async def response_for_gpt(speechResult):
+    print("Function called: response_for_gpt")
+    start_time = time.time()
     max_chars = 500
-    ai_response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        max_tokens=150,
-        messages=[
-            {
-                "role": "system",
-                "content": (
-                    "You are a helpful assistant."
-                    "Please provide concise and brief answers, no longer than 500 words. "
-                    "Avoid unnecessary details."
-                )
-            },
-            {"role": "user", "content": speechResult}
-        ]
-    ).choices[0].message['content'].strip()
-    
-    if len(ai_response) > max_chars:
-        ai_response = ai_response[:max_chars]
-    
-    return ai_response
+    max_tokens = 150  # Reduced max_tokens to speed up response
+    print(f"Input speechResult: {speechResult}")
+
+    try:
+        # Using 'n' parameter to limit the number of completions to 1
+        # and setting 'temperature' to 0.7 for a balance between speed and creativity
+        ai_response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            max_tokens=max_tokens,
+            n=1,
+            temperature=0.7,
+            messages=[
+                {
+                    "role": "system",
+                    "content": (
+                        "You are a helpful assistant."
+                        "Please provide concise and brief answers, no longer than 500 words. "
+                        "Avoid unnecessary details."
+                    )
+                },
+                {"role": "user", "content": speechResult}
+            ]
+        ).choices[0].message['content'].strip()
+
+        print(f"Raw ai_response: {ai_response}")
+
+        if len(ai_response) > max_chars:
+            ai_response = ai_response[:max_chars]
+            print("Truncated ai_response to max_chars")
+
+        end_time = time.time()
+        print(f"Response generated in {end_time - start_time:.2f} seconds")
+
+        return ai_response
+
+    except Exception as e:
+        print(f"Error during OpenAI API call: {e}")
+        return "Sorry, an error occurred while processing your request."
     # return ai_response
