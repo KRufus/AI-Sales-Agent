@@ -8,7 +8,7 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponse
 from .utils.utils import convert_text_to_speech, response_for_gpt
-from twilio.rest import Client
+# from twilio.rest import Client
 from datetime import datetime
 from calls.models import Call
 from calls.serializers import CallSerializer
@@ -26,6 +26,7 @@ from asgiref.sync import async_to_sync
 from threading import Thread
 from .tasks import process_ai_response_task
 from .utils.redis_cache import retrieve_public_url
+from client.models import Client
 
 
 
@@ -50,6 +51,8 @@ def make_ai_call(request):
             data = JSONParser().parse(request)
 
             user = User.objects.get(id=data.get('created_by'))
+            
+            print(data, "data")
 
             serializer = CallSerializer(data=data)
             if serializer.is_valid():
@@ -127,15 +130,16 @@ def make_ai_call(request):
 def process_gather(request):
     if request.method == 'POST':
         call_sid = request.POST.get('CallSid')
+        speech_start = time.time()
         speech_result = request.POST.get('SpeechResult')
+        speech_end = time.time()
+        print(f"\n\nTime taken for speech result : {speech_start - speech_end:.2f} seconds")
 
         if not call_sid:
             return JsonResponse({"error": "Call SID is missing"}, status=400)
         
         response = VoiceResponse()
-        response.say("Please hold while we process your request.")
-
-        response.play("https://ai-ds-api.armyof.me/aisalesagent/audio/ai_7c279f058e184ff3ba4162380b1940b8.mp3", loop=0)
+        response.pause(length=35)
         http_response = HttpResponse(str(response), content_type='application/xml')
 
         # Thread(target=process_ai_response, args=(call_sid, speech_result)).start()
@@ -144,52 +148,6 @@ def process_gather(request):
         return http_response
 
     return JsonResponse({"error": "Invalid request method."}, status=405)
-
-
-def process_ai_response(call_sid, speech_result):
-    try:
-        
-        start_time = time.time()
-        
-        ai_response_start = time.time()
-        ai_response = async_to_sync(response_for_gpt)(speech_result)
-        ai_response_end = time.time()
-        # print(f"AI Response: {ai_response}")
-        print(f"Time taken to generate AI response: {ai_response_end - ai_response_start:.2f} seconds")
-
-        SPEAK_TEXT = {"text": ai_response}
-        tts_start = time.time()
-        public_url = async_to_sync(convert_text_to_speech)(SPEAK_TEXT, prefix="ai")
-        tts_end = time.time()
-        # print(f"Public URL of TTS audio: {public_url}")
-        print(f"Time taken for text-to-speech conversion: {tts_end - tts_start:.2f} seconds")
-
-        # store_public_url(call_sid, public_url)
-
-        play_response_url = f"{settings.EXTERNAL_NGROK_URL}api/ai/play_ai_response/?call_sid={call_sid}"
-        
-
-        call_update_start = time.time()
-        call = twilio_client.calls(call_sid).fetch()
-        print(f"Call status before update: {call.status}")
-        if call.status in ['queued', 'ringing', 'in-progress']:
-            update = twilio_client.calls(call_sid).update(
-                url=play_response_url,
-                method='POST'
-            )
-            print(f"Call update result: {update}")
-        else:
-            print(f"Call {call_sid} is no longer active.")
-        call_update_end = time.time()
-        print(f"Time taken to update the call: {call_update_end - call_update_start:.2f} seconds")
-        
-        total_time = time.time() - start_time
-        print(f"Total time taken in process_ai_response: {total_time:.2f} seconds")
-    except Exception as e:
-        print(f"Error in process_ai_response: {e}")
-        import traceback
-        traceback.print_exc()
-
 
 
 @csrf_exempt
@@ -220,6 +178,43 @@ def play_ai_response(request):
     response.append(gather)
     logger.info(f"Responding with TwiML to play URL: {public_url}")
     return HttpResponse(str(response), content_type='application/xml')
+
+
+@csrf_exempt
+def play_ai_response_with_thank_you(request):
+    logger.info("play_ai_response endpoint triggered.")
+    
+    call_sid = request.GET.get('call_sid') or request.POST.get('call_sid')
+    if not call_sid:
+        logger.warning("Call SID is missing in the request.")
+        return HttpResponse("Call SID is missing.", status=400)
+    public_url = retrieve_public_url(call_sid)
+    if not public_url:
+        logger.warning(f"No audio available for Call SID {call_sid}.")
+        return HttpResponse("No audio available.", status=404)
+    
+    
+    to_phone_number = request.POST.get('To')
+     
+    if not to_phone_number:
+     return HttpResponse("To phone number is missing.", status=400)
+  
+    try:
+        client = Client.objects.get(phone_number=to_phone_number)
+        client.is_called = True
+        client.call_status = Client.STATUS_COMPLETED
+        client.save()
+        logger.info(f"Client {client.name} status updated to Completed.")
+    except Client.DoesNotExist:
+        logger.warning(f"No client found for Call SID {call_sid}.")
+
+    response = VoiceResponse()
+    response.play(public_url)
+    response.hangup()
+
+    logger.info(f"Responding with TwiML to play URL: {public_url} and hang up after.")
+    return HttpResponse(str(response), content_type='application/xml')
+
 
 
 
@@ -343,3 +338,48 @@ def make_ai_call_in_celery(request):
 #             return HttpResponse(status=500)
 
 #     return JsonResponse({"error": "Invalid request method."}, status=405)
+
+
+# def process_ai_response(call_sid, speech_result):
+#     try:
+        
+#         start_time = time.time()
+        
+#         ai_response_start = time.time()
+#         ai_response = async_to_sync(response_for_gpt)(speech_result)
+#         ai_response_end = time.time()
+#         # print(f"AI Response: {ai_response}")
+#         print(f"Time taken to generate AI response: {ai_response_end - ai_response_start:.2f} seconds")
+
+#         SPEAK_TEXT = {"text": ai_response}
+#         tts_start = time.time()
+#         public_url = async_to_sync(convert_text_to_speech)(SPEAK_TEXT, prefix="ai")
+#         tts_end = time.time()
+#         # print(f"Public URL of TTS audio: {public_url}")
+#         print(f"Time taken for text-to-speech conversion: {tts_end - tts_start:.2f} seconds")
+
+#         # store_public_url(call_sid, public_url)
+
+#         play_response_url = f"{settings.EXTERNAL_NGROK_URL}api/ai/play_ai_response/?call_sid={call_sid}"
+        
+
+#         call_update_start = time.time()
+#         call = twilio_client.calls(call_sid).fetch()
+#         print(f"Call status before update: {call.status}")
+#         if call.status in ['queued', 'ringing', 'in-progress']:
+#             update = twilio_client.calls(call_sid).update(
+#                 url=play_response_url,
+#                 method='POST'
+#             )
+#             print(f"Call update result: {update}")
+#         else:
+#             print(f"Call {call_sid} is no longer active.")
+#         call_update_end = time.time()
+#         print(f"Time taken to update the call: {call_update_end - call_update_start:.2f} seconds")
+        
+#         total_time = time.time() - start_time
+#         print(f"Total time taken in process_ai_response: {total_time:.2f} seconds")
+#     except Exception as e:
+#         print(f"Error in process_ai_response: {e}")
+#         import traceback
+#         traceback.print_exc()

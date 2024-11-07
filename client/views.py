@@ -117,6 +117,7 @@ class ExecuteCalls(APIView):
         # Validate that assistant and session_name are present in the request body
         assistant = request.data.get('assistant')
         session_name = request.data.get('session_name')
+        
 
         if not assistant:
             return Response({'error': 'Validation failed', 'details': 'Assistant is required.'}, status=status.HTTP_400_BAD_REQUEST)
