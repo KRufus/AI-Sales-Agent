@@ -19,7 +19,7 @@ import os
 from .utils.utils import dg_client
 import asyncio
 from django.conf import settings
-from twilio.twiml.voice_response import VoiceResponse, Gather
+from twilio.twiml.voice_response import VoiceResponse, Gather, Start, Stream, Dial
 from deepgram import DeepgramClient
 from .utils.utils import twilio_client, from_phone_number
 from asgiref.sync import async_to_sync
@@ -27,6 +27,8 @@ from threading import Thread
 from .tasks import process_ai_response_task
 from .utils.redis_cache import retrieve_public_url
 from client.models import Client
+import json
+import uuid
 
 
 
@@ -43,75 +45,49 @@ dg_client = DeepgramClient(api_key=os.getenv("DEEPGRAM_API_KEY"))
 
 @csrf_exempt
 def make_ai_call(request):
-    print("\n\n ______ make_ai_call URL was triggered")
-    print("request.get_host() _____ ", request.get_host())
-
     if request.method == 'POST':
         try:
             data = JSONParser().parse(request)
-
             user = User.objects.get(id=data.get('created_by'))
-            
-            print(data, "data")
-
             serializer = CallSerializer(data=data)
             if serializer.is_valid():
                 call_instance = serializer.save(created_by=user)
-
                 client_phone_number = serializer.validated_data.get('customer_phone')
                 client_name = serializer.validated_data.get('customer_name')
-                consent = serializer.validated_data.get('consent')
-
-                if not client_phone_number or not client_name:
-                    return JsonResponse({"error": "Missing client_phone_number or client_name."}, status=400)
                 
-                SPEAK_TEXT = {"text":f"Hello ${client_name}, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings? "}
-
-
+                # Prepare the introduction message
+                SPEAK_TEXT = {
+                    "text": f"Hello {client_name}, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings?"
+                }
                 public_url = asyncio.run(convert_text_to_speech(SPEAK_TEXT, prefix="ai"))
-                
                 if not public_url:
                     return JsonResponse({"error": "Failed to generate TTS or upload to MinIO"}, status=500)
-                
-                print(public_url, "public_url")
-                
-                
+
+                # Twilio VoiceResponse
                 response = VoiceResponse()
                 
-                gather = Gather(
-                input="speech dtmf",
-                action=f"{settings.EXTERNAL_NGROK_URL}api/ai/process-gather/",
-                method="POST",
-                timeout=2,
-                speechTimeout="2",
-                speechModel="deepgram_nova-2",
-                language="en-US"
-            )
-                gather.play(public_url)
-                print(response, "response")
-                response.append(gather)
+                # Initiate WebSocket for Deepgram to listen to customer responses
+                start = Start()
+                stream = Stream(
+                    url=settings.EXTERNAL_WEBSOCKET_URL,
+                    track="both_tracks"
+                )
+                start.append(stream)
+                response.append(start)
                 
-    
-                call = twilio_client.calls.create(
+                # Play the introductory message
+                response.play(public_url)
+
+                # Keep the call open for customer interaction
+                response.pause(length=10)  # Optional pause to allow time for customer input
+                
+                # Create the call with Twilio
+                twilio_call = twilio_client.calls.create(
                     twiml=response,
                     to=client_phone_number,
                     from_=from_phone_number
                 )
-                
-                print("call _____ ", call)
-                logger.info(f"Call initiated: {client_phone_number}, SID: {call.sid}")
-
-                Call.objects.create(
-                    customer_name=client_name,
-                    customer_phone=client_phone_number,
-                    call_sid=call.sid,
-                    # assistant_id=data.get('assistant_id'),
-                    assistant_id=1,
-                    # consent_given=consent  # Initially set to False
-                )
-                
-
-                return JsonResponse({"call_sid": call.sid}, status=status.HTTP_200_OK)
+                return JsonResponse({"call_sid": twilio_call.sid}, status=status.HTTP_200_OK)
 
             else:
                 return JsonResponse(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -123,8 +99,6 @@ def make_ai_call(request):
             return JsonResponse({"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     return JsonResponse({"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-
 
 @csrf_exempt
 def process_gather(request):

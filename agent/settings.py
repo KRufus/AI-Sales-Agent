@@ -214,3 +214,18 @@ API_BASE_URL = 'http://localhost:8000/api'
 MEDIA_URL = '/media/' 
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')  
 
+
+WSGI_APPLICATION = 'agent.wsgi.application'
+ASGI_APPLICATION = 'agent.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            'hosts': [os.getenv('REDIS_URL_FOR_CHACHE')],
+        },
+    },
+}
+
+EXTERNAL_WEBSOCKET_URL = os.environ.get('EXTERNAL_WEBSOCKET_URL', 'wss://3e9a-103-88-236-42.ngrok-free.app/ws/proxy/')
+
