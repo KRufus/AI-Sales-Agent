@@ -1,7 +1,8 @@
+# ai_agent/routing.py
 
 from django.urls import re_path
-from .utils.websocket_consumer import TwilioDeepgramConsumer
+from . import consumers
 
 websocket_urlpatterns = [
-    re_path(r'^ws/proxy/$', TwilioDeepgramConsumer.as_asgi()),
+    re_path(r"^ws/streams/$", consumers.StreamConsumer.as_asgi()),
 ]
