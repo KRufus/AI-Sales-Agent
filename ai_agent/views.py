@@ -61,9 +61,9 @@ def make_ai_call(request):
             user = User.objects.get(id=data.get("created_by"))
 
             print(data, "data")
-            cache_data = retrieve_assistant_config_details(data.get("created_by"))
+            # cache_data = retrieve_assistant_config_details(data.get("created_by"))
 
-            print(cache_data, "cache_data")
+            # print(cache_data, "cache_data")
 
             serializer = CallSerializer(data=data)
             if serializer.is_valid():
@@ -118,7 +118,7 @@ def make_ai_call(request):
                 call = twilio_client.calls.create(
                     to=client_phone_number,
                     from_=from_phone_number,
-                    url="https://2f85-203-189-248-144.ngrok-free.app/api/ai/twiml/",
+                    url="https://547d-2401-4900-57ae-dc2f-c40-4b01-634-77b7.ngrok-free.app/api/ai/twiml/",
                 )
 
                 print("call _____ ", call)

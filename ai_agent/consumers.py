@@ -96,6 +96,12 @@ class StreamConsumer(AsyncWebsocketConsumer):
                     # Print the received transcript
                     print(f"Received transcript: {utterance}")
                     # Measure STT time
+                    # Check if user says "bye" and stop stream if so
+                    if "bye" in utterance.lower():
+                        print("User said 'bye'. Stopping stream.")
+                        await self.stop_stream()
+                        return
+
                     if self.stt_start_time:
                         stt_end_time = time.time()
                         stt_total_time = stt_end_time - self.stt_start_time
@@ -293,3 +299,15 @@ You are the outbound voice assistant for Army of Me.
         clear_message = {"event": "clear", "streamSid": self.stream_sid}
         await self.send(text_data=json.dumps(clear_message))
         print("Sent 'clear' message to Twilio to stop playback.")
+
+    async def stop_stream(self):
+        """
+        Stop the Twilio stream and close WebSocket connections.
+        """
+        # Send stop command to Twilio to stop the stream
+        stop_message = {"event": "close", "streamSid": self.stream_sid}
+        await self.send(text_data=json.dumps(stop_message))
+
+        # Close the WebSocket and other resources
+        await self.close()
+        print("Stream and WebSocket connections have been closed.")
