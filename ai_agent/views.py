@@ -67,7 +67,6 @@ def make_ai_call(request):
 
             user = User.objects.get(id=data.get("created_by"))
 
-            print(data, "data")
             cache_data = retrieve_twilio_configs(data.get("created_by"))
 
             print(cache_data, "cache_data")
