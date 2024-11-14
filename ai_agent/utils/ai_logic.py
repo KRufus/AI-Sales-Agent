@@ -3,7 +3,7 @@ import time
 import asyncio
 from .utils import response_for_gpt, convert_text_to_speech
 from .twilio import twilio_client
-from .redis_cache import store_public_url
+# from .redis_cache import store_public_url
 from django.conf import settings
 
 
@@ -26,7 +26,7 @@ def process_ai_response_logic(call_sid, speech_result):
             print(f"\n\nTime taken for text-to-speech conversion: {tts_end - tts_start:.2f} seconds")
 
             # Store the public URL for later retrieval
-            store_public_url(call_sid, public_url)
+            # store_public_url(call_sid, public_url)
 
             # Build the URL to the farewell TwiML endpoint
             play_response_url = f"{settings.EXTERNAL_NGROK_URL}api/ai/thank-you/?call_sid={call_sid}"
@@ -63,7 +63,7 @@ def process_ai_response_logic(call_sid, speech_result):
         print(f"\n\nTime taken for text-to-speech conversion: {tts_end - tts_start:.2f} seconds")
 
         # Store the public URL for later retrieval
-        store_public_url(call_sid, public_url)
+        # store_public_url(call_sid, public_url)
 
         # Build the URL to the new TwiML endpoint
         play_response_url = f"{settings.EXTERNAL_NGROK_URL}api/ai/play-ai-response/?call_sid={call_sid}"

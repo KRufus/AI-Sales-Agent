@@ -2,7 +2,7 @@
 <Response>
   <Say>Hello Amul, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings?</Say>
   <Connect>
-    <Stream url="wss://5604-103-86-69-151.ngrok-free.app/ws/streams/">
+    <Stream url="wss://2f85-203-189-248-144.ngrok-free.app/ws/streams/">
       <Parameter name="aCustomParameter" value="aCustomValue that was set in TwiML" />
     </Stream>
   </Connect>

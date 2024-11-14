@@ -26,13 +26,12 @@ from .utils.utils import twilio_client, from_phone_number
 from asgiref.sync import async_to_sync
 from threading import Thread
 from .tasks import process_ai_response_task
-from .utils.redis_cache import retrieve_public_url
+# from .utils.redis_cache import retrieve_public_url
 from client.models import Client
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
-from client.utils import retrieve_assistant_config_details
-
+from client.utils import retrieve_twilio_configs
 
 
 User = get_user_model()
@@ -59,86 +58,109 @@ def get_twiml(request):
 
 @csrf_exempt
 def make_ai_call(request):
-   print("\n\n ______ make_ai_call URL was triggered")
-   print("request.get_host() _____ ", request.get_host())
+    print("\n\n ______ make_ai_call URL was triggered")
+    print("request.get_host() _____ ", request.get_host())
 
+    if request.method == "POST":
+        try:
+            data = JSONParser().parse(request)
 
-   if request.method == "POST":
-       try:
-           data = JSONParser().parse(request)
+            user = User.objects.get(id=data.get("created_by"))
 
+            print(data, "data")
+            cache_data = retrieve_twilio_configs(data.get("created_by"))
 
-           user = User.objects.get(id=data.get("created_by"))
+            print(cache_data, "cache_data")
 
+            serializer = CallSerializer(data=data)
+            if serializer.is_valid():
+                call_instance = serializer.save(created_by=user)
 
-           print(data, "data")
-           
-           cache_data = retrieve_assistant_config_details(user)
-           
-           print(cache_data, "cache_data")
+                client_phone_number = serializer.validated_data.get("customer_phone")
+                client_name = serializer.validated_data.get("customer_name")
+                consent = serializer.validated_data.get("consent")
 
+                if not client_phone_number or not client_name:
+                    return JsonResponse(
+                        {"error": "Missing client_phone_number or client_name."},
+                        status=400,
+                    )
 
-           serializer = CallSerializer(data=data)
-           if serializer.is_valid():
-               call_instance = serializer.save(created_by=user)
+                # SPEAK_TEXT = {
+                #     "text": f"Hello ${client_name}, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings? "
+                # }
 
+                # public_url = asyncio.run(
+                #     convert_text_to_speech(SPEAK_TEXT, prefix="ai")
+                # )
 
-               client_phone_number = serializer.validated_data.get("customer_phone")
-               client_name = serializer.validated_data.get("customer_name")
-               consent = serializer.validated_data.get("consent")
+                # if not public_url:
+                #     return JsonResponse(
+                #         {"error": "Failed to generate TTS or upload to MinIO"},
+                #         status=500,
+                #     )
 
+                # print(public_url, "public_url")
 
-               if not client_phone_number or not client_name:
-                   return JsonResponse(
-                       {"error": "Missing client_phone_number or client_name."},
-                       status=400,
-                   )
+                # response = VoiceResponse()
 
+                # gather = Gather(
+                #     input="speech",
+                #     action=f"{settings.EXTERNAL_NGROK_URL}api/ai/process-gather/",
+                #     method="POST",
+                #     timeout=20,
+                #     speechTimeout="5",
+                #     speechModel="deepgram_nova-2-phonecall",
+                #     language="en-US",
+                # )
+                # gather.play(public_url)
+                # print(response, "response")
+                # response.append(gather)
 
-               call = twilio_client.calls.create(
-                   to=client_phone_number,
-                   from_=from_phone_number,
-                   url="https://9c66-106-79-199-14.ngrok-free.app/api/ai/twiml/",
-               )
+                # print(
+                #     cache_data["config_data"]["account_sid"],
+                #     cache_data["config_data"]["auth_token"],
+                #     cache_data["config_data"]["twilio_no"],
+                # )
+                call = twilio_client.calls.create(
+                    to=client_phone_number,
+                    from_=from_phone_number,
+                    url="https://9c66-106-79-199-14.ngrok-free.app/api/ai/twiml/",
+                )
 
+                print("call _____ ", call)
+                logger.info(f"Call initiated: {client_phone_number}, SID: {call.sid}")
 
-               print("call _____ ", call)
-               logger.info(f"Call initiated: {client_phone_number}, SID: {call.sid}")
+                Call.objects.create(
+                    customer_name=client_name,
+                    customer_phone=client_phone_number,
+                    call_sid=call.sid,
+                    assistant_id=data.get(
+                        "assistant_id", 1
+                    ),  # Default to 1 if not provided
+                )
 
+                return JsonResponse({"call_sid": call.sid}, status=status.HTTP_200_OK)
 
-               Call.objects.create(
-                   customer_name=client_name,
-                   customer_phone=client_phone_number,
-                   call_sid=call.sid,
-                   assistant_id=data.get(
-                       "assistant_id", 1
-                   ),
-               )
+            else:
+                return JsonResponse(
+                    serializer.errors, status=status.HTTP_400_BAD_REQUEST
+                )
 
+        except User.DoesNotExist:
+            return JsonResponse(
+                {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
+            )
+        except Exception as e:
+            logger.error(f"Error initiating AI call: {e}")
+            return JsonResponse(
+                {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
-               return JsonResponse({"call_sid": call.sid}, status=status.HTTP_200_OK)
+    return JsonResponse(
+        {"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED
+    )
 
-
-           else:
-               return JsonResponse(
-                   serializer.errors, status=status.HTTP_400_BAD_REQUEST
-               )
-
-
-       except User.DoesNotExist:
-           return JsonResponse(
-               {"error": "User not found."}, status=status.HTTP_404_NOT_FOUND
-           )
-       except Exception as e:
-           logger.error(f"Error initiating AI call: {e}")
-           return JsonResponse(
-               {"error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR
-           )
-
-
-   return JsonResponse(
-       {"error": "Invalid request method."}, status=status.HTTP_405_METHOD_NOT_ALLOWED
-   )
 
 
 
