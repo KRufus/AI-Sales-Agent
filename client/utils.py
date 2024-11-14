@@ -8,7 +8,9 @@ def cache_assistant_config_details(created_by, data):
 
     cache_key = f"assistant:{created_by}"
     try:
-        cache.client.get_client().rpush(cache_key, data)
+        # cache.client.get_client().rpush(cache_key, data)
+        cache.hset(cache_key, field="config_data", value=data)
+        
         logger.info(f"Stored assistant and config {data}")
     except Exception as e:
         logger.error(f"Failed to store  {data}. Error: {e}")
