@@ -2,7 +2,7 @@
 <Response>
   <Say>Speak now.</Say>
   <Connect>
-    <Stream url="wss://5604-103-86-69-151.ngrok-free.app/ws/streams/">
+    <Stream url="wss://2f85-203-189-248-144.ngrok-free.app/ws/streams/">
       <Parameter name="aCustomParameter" value="aCustomValue that was set in TwiML" />
     </Stream>
   </Connect>

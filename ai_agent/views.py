@@ -30,6 +30,7 @@ from client.models import Client
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
+from client.utils import retrieve_assistant_config_details
 
 
 User = get_user_model()
@@ -60,6 +61,9 @@ def make_ai_call(request):
             user = User.objects.get(id=data.get("created_by"))
 
             print(data, "data")
+            cache_data = retrieve_assistant_config_details(data.get("created_by"))
+
+            print(cache_data, "cache_data")
 
             serializer = CallSerializer(data=data)
             if serializer.is_valid():
@@ -75,39 +79,46 @@ def make_ai_call(request):
                         status=400,
                     )
 
-                SPEAK_TEXT = {
-                    "text": f"Hello ${client_name}, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings? "
-                }
+                # SPEAK_TEXT = {
+                #     "text": f"Hello ${client_name}, this is Ginie from Army of Me. I hope you're doing well today! We provide a range of accounting and financial services, including bookkeeping, tax preparation, payroll processing, and more. Is there a particular service you are interested in, or would you like an overview of our offerings? "
+                # }
 
-                public_url = asyncio.run(
-                    convert_text_to_speech(SPEAK_TEXT, prefix="ai")
-                )
+                # public_url = asyncio.run(
+                #     convert_text_to_speech(SPEAK_TEXT, prefix="ai")
+                # )
 
-                if not public_url:
-                    return JsonResponse(
-                        {"error": "Failed to generate TTS or upload to MinIO"},
-                        status=500,
-                    )
+                # if not public_url:
+                #     return JsonResponse(
+                #         {"error": "Failed to generate TTS or upload to MinIO"},
+                #         status=500,
+                #     )
 
-                print(public_url, "public_url")
+                # print(public_url, "public_url")
 
-                response = VoiceResponse()
+                # response = VoiceResponse()
 
-                gather = Gather(
-                    input="speech",
-                    action=f"{settings.EXTERNAL_NGROK_URL}api/ai/process-gather/",
-                    method="POST",
-                    timeout=20,
-                    speechTimeout="5",
-                    speechModel="deepgram_nova-2-phonecall",
-                    language="en-US",
-                )
-                gather.play(public_url)
-                print(response, "response")
-                response.append(gather)
+                # gather = Gather(
+                #     input="speech",
+                #     action=f"{settings.EXTERNAL_NGROK_URL}api/ai/process-gather/",
+                #     method="POST",
+                #     timeout=20,
+                #     speechTimeout="5",
+                #     speechModel="deepgram_nova-2-phonecall",
+                #     language="en-US",
+                # )
+                # gather.play(public_url)
+                # print(response, "response")
+                # response.append(gather)
 
+                # print(
+                #     cache_data["config_data"]["account_sid"],
+                #     cache_data["config_data"]["auth_token"],
+                #     cache_data["config_data"]["twilio_no"],
+                # )
                 call = twilio_client.calls.create(
-                    twiml=response, to=client_phone_number, from_=from_phone_number
+                    to=client_phone_number,
+                    from_=from_phone_number,
+                    url="https://2f85-203-189-248-144.ngrok-free.app/api/ai/twiml/",
                 )
 
                 print("call _____ ", call)
@@ -117,9 +128,9 @@ def make_ai_call(request):
                     customer_name=client_name,
                     customer_phone=client_phone_number,
                     call_sid=call.sid,
-                    # assistant_id=data.get('assistant_id'),
-                    assistant_id=1,
-                    # consent_given=consent  # Initially set to False
+                    assistant_id=data.get(
+                        "assistant_id", 1
+                    ),  # Default to 1 if not provided
                 )
 
                 return JsonResponse({"call_sid": call.sid}, status=status.HTTP_200_OK)
