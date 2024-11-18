@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Response>
+  <Say>Good evening</Say>
+  <Connect>
+    <Stream url="wss://bc00-74-48-73-37.ngrok-free.app/ws/streams/">
+      <Parameter name="aCustomParameter" value="aCustomValue that was set in TwiML" />
+    </Stream>
+  </Connect>
+  <Say>Have You good day, Bye</Say>
+</Response>

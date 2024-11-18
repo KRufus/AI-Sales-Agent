@@ -114,12 +114,20 @@ class ExecuteCalls(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        created_by_id = request.user.id
-        
+        # Validate that assistant and session_name are present in the request body
         assistant = request.data.get('assistant')
         session_name = request.data.get('session_name')
+        
 
+        if not assistant:
+            return Response({'error': 'Validation failed', 'details': 'Assistant is required.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not session_name:
+            return Response({'error': 'Validation failed', 'details': 'Session name is required.'}, status=status.HTTP_400_BAD_REQUEST)
 
+        created_by_id = request.user.id
+
+        # Trigger the task with Celery
         execute_calls_for_user.delay(created_by_id, assistant, session_name)
 
         return Response({"message": "Call execution started for pending clients."}, status=200)
