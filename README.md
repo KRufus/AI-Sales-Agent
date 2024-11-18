@@ -160,26 +160,32 @@ Refer to the API documentation or codebase for detailed information on request a
   ```
 
   ```
+  daphne -b 0.0.0.0 -p 8000 agent.asgi:application
   celery -A agent worker --loglevel=info
 
   celery -A agent worker --loglevel=info --pool=solo
+  ```
 
 ```
 
 ## Run the MinIO on docker
 ```
+
 docker run -p 9000:9000 -p 9001:9001 --name minio1 -v "D:\minio\data:/data" -e "MINIO_ROOT_USER=ROOTUSER" -e "MINIO_ROOT_PASSWORD=CHANGEME123" quay.io/minio/minio server /data --console-address ":9001"
+
 ```
 
 
 - **Database Configuration:** The project is configured to use SQLite by default. To use another database (e.g., PostgreSQL), update the `DATABASES` setting in `settings.py` accordingly.
 - **Static Files:** For serving static files in development, ensure `STATIC_URL` and `STATICFILES_DIRS` are correctly set in `settings.py`
 
-## NGROK 
+## NGROK
 ```
+
 python manage.py start_ngrok
 
 python manage.py start_ngrok --stop
+
 ```
 
 ## License
@@ -191,3 +197,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 You're all set! If you encounter any issues during installation, please refer to the Django documentation or contact the project maintainers for assistance.
 
 Happy coding!
+```

@@ -118,7 +118,7 @@ def make_ai_call(request):
                 call = twilio_client.calls.create(
                     to=client_phone_number,
                     from_=from_phone_number,
-                    url="https://547d-2401-4900-57ae-dc2f-c40-4b01-634-77b7.ngrok-free.app/api/ai/twiml/",
+                    url="https://bc00-74-48-73-37.ngrok-free.app/api/ai/twiml/",
                 )
 
                 print("call _____ ", call)
